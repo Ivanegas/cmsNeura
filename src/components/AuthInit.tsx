@@ -17,11 +17,17 @@ const AuthInit = () => {
             const isAuthPage = ["/login", "/register"].includes(location.pathname);
 
             if (isAuthPage) {
-                if (user.role === "admin") {
+                /* if (user.role === "admin") {
                     navigate("/cms", { replace: true });
                 } else if (user.role === "editor") {
                     navigate("/editor", { replace: true });
-                } else {
+                } else if (user.role === "viewer") {
+                    navigate("/viewer", { replace: true });
+                } */
+
+                if (user.role === "editor") {
+                    navigate("/editor", { replace: true });
+                } else if (user.role === "viewer") {
                     navigate("/viewer", { replace: true });
                 }
             }

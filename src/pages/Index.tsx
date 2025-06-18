@@ -5,7 +5,7 @@ import { Hotel } from 'lucide-react';
 
 const Index = () => {
   console.log("Index component is rendering");
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
       <div className="text-center max-w-2xl mx-auto px-4">
@@ -18,7 +18,7 @@ const Index = () => {
             <span className="text-blue-600 block">App Hoteles</span>
           </h1>
           <Button size="lg" asChild>
-            <a href="/cms">
+            <a href="/login">
               Acceder al Panel de Administración
             </a>
           </Button>
