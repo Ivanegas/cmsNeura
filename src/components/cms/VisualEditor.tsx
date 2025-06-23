@@ -1,12 +1,12 @@
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Save, 
-  Eye, 
-  Undo, 
+import {
+  Save,
+  Eye,
+  Undo,
   Redo,
   ArrowLeft,
   Tv,
@@ -18,6 +18,7 @@ import { EditableElement } from './EditableElement';
 import { ImageLibrary } from './ImageLibrary';
 import { useCMS } from '@/contexts/CMSContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 interface VisualEditorProps {
   onNavigate?: (view: string) => void;
@@ -100,11 +101,11 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragCounter(0);
-    
+
     console.log('💧 Evento de soltar activado en el canvas');
-    
+
     let elementType = '';
-    
+
     // Intentar obtener datos de diferentes formatos
     try {
       const jsonData = e.dataTransfer.getData('application/json');
@@ -116,59 +117,59 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
     } catch (err) {
       console.log('❌ Error al parsear JSON:', err);
     }
-    
+
     if (!elementType) {
       elementType = e.dataTransfer.getData('text/plain');
       console.log('📝 Datos de texto encontrados:', elementType);
     }
-    
+
     if (!elementType) {
       elementType = e.dataTransfer.getData('text/html');
       console.log('🔗 Datos HTML encontrados:', elementType);
     }
-    
+
     if (!elementType && dragElementType) {
       elementType = dragElementType;
       console.log('🎯 Usando tipo de arrastre guardado:', elementType);
     }
-    
+
     const rect = canvasRef.current?.getBoundingClientRect();
-    
+
     console.log('💧 Detalles del soltar:', { elementType, rect, dragElementType });
-    
+
     if (rect && elementType) {
       const x = Math.max(20, Math.min(e.clientX - rect.left - 100, rect.width - 220));
       const y = Math.max(20, Math.min(e.clientY - rect.top - 25, rect.height - 100));
-      
+
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: elementType,
         x: x,
         y: y,
-        width: elementType === 'text' ? 300 : 
-               elementType === 'heading' ? 400 :
-               elementType === 'button' ? 150 : 250,
-        height: elementType === 'text' ? 40 : 
-                elementType === 'heading' ? 60 :
-                elementType === 'button' ? 40 : 
-                elementType === 'image' ? 200 : 100,
-        content: elementType === 'text' ? 'Haz doble clic para editar' : 
-                elementType === 'heading' ? 'Título Principal' :
-                elementType === 'button' ? 'Mi Botón' : 
-                elementType === 'image' ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400' : 
+        width: elementType === 'text' ? 300 :
+          elementType === 'heading' ? 400 :
+            elementType === 'button' ? 150 : 250,
+        height: elementType === 'text' ? 40 :
+          elementType === 'heading' ? 60 :
+            elementType === 'button' ? 40 :
+              elementType === 'image' ? 200 : 100,
+        content: elementType === 'text' ? 'Haz doble clic para editar' :
+          elementType === 'heading' ? 'Título Principal' :
+            elementType === 'button' ? 'Mi Botón' :
+              elementType === 'image' ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400' :
                 elementType === 'video' ? 'Video aquí' :
-                elementType === 'link' ? 'Enlace' :
-                elementType === 'list' ? 'Elemento de lista' :
-                elementType === 'container' ? 'Contenedor' : 'Nuevo elemento',
+                  elementType === 'link' ? 'Enlace' :
+                    elementType === 'list' ? 'Elemento de lista' :
+                      elementType === 'container' ? 'Contenedor' : 'Nuevo elemento',
         styles: {
-          fontSize: elementType === 'text' ? '16px' : 
-                  elementType === 'heading' ? '32px' : '14px',
+          fontSize: elementType === 'text' ? '16px' :
+            elementType === 'heading' ? '32px' : '14px',
           fontWeight: elementType === 'heading' ? 'bold' : 'normal',
           color: '#ffffff',
           backgroundColor: elementType === 'button' ? '#3b82f6' : 'transparent'
         }
       };
-      
+
       console.log('✨ Añadiendo nuevo elemento:', newElement);
       setElements(prev => {
         const newElements = [...prev, newElement];
@@ -176,7 +177,7 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
         return newElements;
       });
       setSelectedElement(newElement.id);
-      
+
       toast({
         title: "¡Elemento añadido!",
         description: `Se ha añadido ${elementType} al canvas. Haz doble clic para editar.`,
@@ -189,14 +190,14 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
         variant: "destructive"
       });
     }
-    
+
     handleDragEnd();
   }, [dragElementType, toast, handleDragEnd]);
 
   const handleElementUpdate = useCallback((elementId: string, updates: any) => {
     console.log('🔄 Actualizando elemento:', elementId, updates);
     setElements(prev => {
-      const updated = prev.map(el => 
+      const updated = prev.map(el =>
         el.id === elementId ? { ...el, ...updates } : el
       );
       console.log('📝 Elementos después de actualizar:', updated);
@@ -225,24 +226,84 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
     }
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedPage) {
       const pageContent = {
         elements,
         layout: 'tv',
         version: '1.0'
       };
-      console.log('💾 Guardando contenido de página:', pageContent);
-      updatePage(selectedPage.id, { 
-        content: JSON.stringify(pageContent),
-        lastModified: new Date().toISOString().split('T')[0]
-      });
-      toast({
-        title: "¡Página guardada!",
-        description: `Se han guardado ${elements.length} elementos en la página.`,
-      });
+
+      try {
+        await updatePage(selectedPage.id, {
+          content: JSON.stringify(pageContent),
+          lastModified: new Date().toISOString().split('T')[0]
+        });
+
+        toast({
+          title: "¡Página guardada!",
+          description: `Se han guardado ${elements.length} elementos en la página.`,
+        });
+      } catch (error) {
+        console.error("❌ Error al guardar la página:", error);
+        toast({
+          title: "Error al guardar",
+          description: "No se pudo guardar la página",
+          variant: "destructive",
+        });
+      }
     }
   };
+
+  useEffect(() => {
+    if (selectedPage && selectedPage.content) {
+      try {
+        const parsed = JSON.parse(selectedPage.content);
+
+        if (Array.isArray(parsed)) {
+          // antiguo formato array directo
+          setElements(parsed);
+        } else if (parsed.elements) {
+          setElements(parsed.elements);
+        } else {
+          setElements([]);
+        }
+      } catch {
+        // El contenido era HTML o no JSON → lo envolvemos y guardamos automáticamente como JSON
+        const fallbackContent = {
+          elements: [
+            {
+              id: `legacy-${Date.now()}`,
+              type: 'text',
+              content: selectedPage.content,
+              x: 40,
+              y: 40,
+              width: 300,
+              height: 100,
+              styles: {
+                fontSize: '16px',
+                color: '#ffffff'
+              }
+            }
+          ],
+          layout: 'tv',
+          version: 'legacy-import'
+        };
+
+        setElements(fallbackContent.elements);
+
+        // 🔁 Guardar de nuevo el contenido transformado como JSON
+        updatePage(selectedPage.id, {
+          content: JSON.stringify(fallbackContent),
+          lastModified: new Date().toISOString().split('T')[0]
+        });
+      }
+    } else {
+      setElements([]);
+    }
+  }, [selectedPage]);
+
+
 
   const switchToCodeEditor = () => {
     if (onNavigate) {
@@ -265,26 +326,23 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setSelectedPageId(null)}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Editor Visual</h1>
-            <p className="text-gray-500">
-              Editando: {selectedPage?.title}
-              <Badge className="ml-2" variant={selectedPage?.status === 'published' ? 'default' : 'secondary'}>
-                {selectedPage?.status === 'published' ? 'Publicado' : 
-                 selectedPage?.status === 'draft' ? 'Borrador' : 'En Revisión'}
-              </Badge>
-            </p>
+          <div className="text-gray-500 flex items-center gap-2">
+            <span>Editando: {selectedPage?.title}</span>
+            <Badge variant={selectedPage?.status === 'published' ? 'default' : 'secondary'}>
+              {selectedPage?.status === 'published' ? 'Publicado' : selectedPage?.status === 'draft' ? 'Borrador' : 'En Revisión'}
+            </Badge>
           </div>
+
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             variant="default"
@@ -293,8 +351,8 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
             <Tv className="w-4 h-4" />
             Modo TV
           </Button>
-          
-          <Button 
+
+          <Button
             variant="outline"
             onClick={switchToCodeEditor}
             className="flex items-center gap-2"
@@ -302,16 +360,16 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
             <Code className="w-4 h-4" />
             Editor Código
           </Button>
-          
-          <Button 
-            variant={showPreview ? 'default' : 'outline'} 
+
+          <Button
+            variant={showPreview ? 'default' : 'outline'}
             className="flex items-center gap-2"
             onClick={() => setShowPreview(!showPreview)}
           >
             <Eye className="w-4 h-4" />
             {showPreview ? 'Ocultar' : 'Mostrar'} Vista Previa
           </Button>
-          
+
           <Button variant="outline" className="flex items-center gap-2" disabled>
             <Undo className="w-4 h-4" />
           </Button>
@@ -363,19 +421,18 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
                 <div className="transition-all duration-300 w-full max-w-6xl">
                   <div
                     ref={canvasRef}
-                    className={`relative w-full aspect-video border-4 ${
-                      isDragging || dragCounter > 0
-                        ? 'border-blue-500 bg-blue-900/20 shadow-lg' 
-                        : 'border-dashed border-gray-300'
-                    } overflow-hidden bg-black transition-all duration-200 rounded-lg`}
+                    className={`relative w-full aspect-video border-4 ${isDragging || dragCounter > 0
+                      ? 'border-blue-500 bg-blue-900/20 shadow-lg'
+                      : 'border-dashed border-gray-300'
+                      } overflow-hidden bg-black transition-all duration-200 rounded-lg`}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onClick={handleCanvasClick}
-                    style={{ 
+                    style={{
                       backgroundImage: isDragging || dragCounter > 0
-                        ? 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 2px, transparent 2px)' 
+                        ? 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 2px, transparent 2px)'
                         : 'none',
                       backgroundSize: isDragging || dragCounter > 0 ? '30px 30px' : 'auto',
                       minHeight: '500px'
@@ -392,7 +449,7 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
                         onDelete={handleElementDelete}
                       />
                     ))}
-                    
+
                     {/* Drop Zone Hint */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center text-white">
@@ -481,19 +538,19 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="text-xs text-gray-500 space-y-1">
                     <p>• Elementos: {elements.length}</p>
                     <p>• Modo: TV Panorámico</p>
                     <p>• Seleccionado: {selectedElement ? '1' : '0'}</p>
                     <p>• Estado: {isDragging ? 'Arrastrando' : dragCounter > 0 ? 'Zona activa' : 'Listo'}</p>
                   </div>
-                  
+
                   {selectedPage?.slug && (
                     <div className="pt-2 border-t">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="w-full"
                         onClick={() => window.open(`/${selectedPage.slug}`, '_blank')}
                       >
@@ -511,7 +568,7 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
 
       {/* Image Library Modal */}
       {showImageLibrary && (
-        <ImageLibrary 
+        <ImageLibrary
           onClose={() => setShowImageLibrary(false)}
           onSelectImage={(url) => {
             setShowImageLibrary(false);

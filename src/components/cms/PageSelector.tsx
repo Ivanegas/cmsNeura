@@ -1,16 +1,16 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Edit3, 
-  Eye, 
+import {
+  Edit3,
+  Eye,
   Plus,
   FileText,
   Calendar,
   User
 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Page {
   id: string;
@@ -29,10 +29,10 @@ interface PageSelectorProps {
   onNavigate?: (view: string) => void;
 }
 
-export const PageSelector: React.FC<PageSelectorProps> = ({ 
-  pages, 
-  onSelectPage, 
-  onNavigate 
+export const PageSelector: React.FC<PageSelectorProps> = ({
+  pages,
+  onSelectPage,
+  onNavigate
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,11 +68,48 @@ export const PageSelector: React.FC<PageSelectorProps> = ({
           return 'Página con elementos visuales';
         }
       } catch (e) {
-        // Fallback to HTML preview
+        // fallback
       }
     }
     return page.content || 'Página sin contenido';
   };
+
+  const defaultPageContent = `
+    <section class="min-h-screen bg-white py-16">
+      <div class="container mx-auto px-4 text-center">
+        <h1 class="text-5xl font-bold text-gray-900 mb-4">Bienvenido</h1>
+        <p class="text-lg text-gray-600 mb-8">Esta es tu primera página. Puedes personalizarla usando el editor visual.</p>
+        <a href="/contacto" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">Contáctanos</a>
+      </div>
+    </section>
+  `;
+
+  const handleCreateFirstPage = async () => {
+    const timestamp = Date.now(); // número único
+    const uniqueSlug = `nueva-pagina-${timestamp}`;
+
+    const { data, error } = await supabase.from("pages").insert([
+      {
+        title: "Nueva Página",
+        slug: uniqueSlug, // ✅ slug único
+        status: "draft",
+        author: "Admin",
+        views: 0,
+        created_at: new Date().toISOString(),
+        content: defaultPageContent
+      }
+    ]).select('id').single();
+
+    if (error) {
+      console.error("❌ Error al crear la página:", error.message);
+      return;
+    }
+
+    if (data?.id) {
+      onSelectPage(data.id);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -111,10 +148,10 @@ export const PageSelector: React.FC<PageSelectorProps> = ({
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Page Preview */}
-              <div 
+              <div
                 className="bg-gray-50 border rounded-lg p-4 min-h-[120px] flex items-center justify-center text-sm text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => onSelectPage(page.id)}
               >
@@ -146,10 +183,7 @@ export const PageSelector: React.FC<PageSelectorProps> = ({
               </div>
 
               {/* Edit Button */}
-              <Button 
-                className="w-full"
-                onClick={() => onSelectPage(page.id)}
-              >
+              <Button className="w-full" onClick={() => onSelectPage(page.id)}>
                 <Edit3 className="w-4 h-4 mr-2" />
                 Editar Visualmente
               </Button>
@@ -167,7 +201,7 @@ export const PageSelector: React.FC<PageSelectorProps> = ({
             <p className="text-gray-500 mb-4">
               Crea tu primera página para comenzar a usar el editor visual
             </p>
-            <Button onClick={() => onNavigate?.('editor')}>
+            <Button onClick={handleCreateFirstPage}>
               <Plus className="w-4 h-4 mr-2" />
               Crear Primera Página
             </Button>

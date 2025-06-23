@@ -64,6 +64,7 @@ const App = () => {
                 }
               />
               <Route path="/:pageSlug" element={<CMSPageRenderer />} />
+              <Route path="/:slug" element={<CMSPageRenderer />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabaseClient';
 import {
   Table,
   TableBody,
@@ -109,7 +110,14 @@ export const SettingsManager: React.FC = () => {
   const [editingPlatform, setEditingPlatform] = useState<PlatformOption | null>(null);
 
   // Estados para formularios
-  const [hotelForm, setHotelForm] = useState({ name: '', address: '', phone: '', totalRooms: '' });
+  /* const [hotelForm, setHotelForm] = useState({ name: '', address: '', phone: '', totalRooms: '' }); */
+  const [hotelForm, setHotelForm] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    totalRooms: ''
+  });
+
   const [roomForm, setRoomForm] = useState({ number: '', hotelId: '', type: '', floor: '', capacity: '', status: 'available' as Room['status'] });
   const [platformForm, setPlatformForm] = useState({ name: '', category: '', monthlyPrice: '', isActive: true });
 
@@ -117,9 +125,9 @@ export const SettingsManager: React.FC = () => {
   const openHotelDialog = (hotel?: Hotel) => {
     if (hotel) {
       setEditingHotel(hotel);
-      setHotelForm({ 
-        name: hotel.name, 
-        address: hotel.address || '', 
+      setHotelForm({
+        name: hotel.name,
+        address: hotel.address || '',
         phone: hotel.phone || '',
         totalRooms: hotel.totalRooms?.toString() || ''
       });
@@ -130,7 +138,7 @@ export const SettingsManager: React.FC = () => {
     setHotelDialog(true);
   };
 
-  const handleHotelSubmit = () => {
+  /* const handleHotelSubmit = () => {
     if (!hotelForm.name.trim()) {
       toast({
         title: "Error",
@@ -141,13 +149,13 @@ export const SettingsManager: React.FC = () => {
     }
 
     if (editingHotel) {
-      setHotels(hotels.map(h => 
-        h.id === editingHotel.id 
-          ? { 
-              ...h, 
-              ...hotelForm,
-              totalRooms: hotelForm.totalRooms ? parseInt(hotelForm.totalRooms) : undefined
-            }
+      setHotels(hotels.map(h =>
+        h.id === editingHotel.id
+          ? {
+            ...h,
+            ...hotelForm,
+            totalRooms: hotelForm.totalRooms ? parseInt(hotelForm.totalRooms) : undefined
+          }
           : h
       ));
       toast({
@@ -167,7 +175,48 @@ export const SettingsManager: React.FC = () => {
       });
     }
     setHotelDialog(false);
+  }; */
+
+  const handleHotelSubmit = async () => {
+    try {
+      // Validación rápida
+      if (!hotelForm.name || !hotelForm.totalRooms) {
+        alert('Por favor completa todos los campos obligatorios');
+        return;
+      }
+
+      const newHotel = {
+        nombre: hotelForm.name,
+        direccion: hotelForm.address,
+        telefono: hotelForm.phone,
+        total_habitaciones: Number(hotelForm.totalRooms),
+      };
+
+      const { error } = await supabase.from('hotels').insert([newHotel]);
+
+      if (error) {
+        console.error('Error al crear el hotel:', error.message);
+        alert('Error al guardar el hotel');
+        return;
+      }
+
+      alert('🏨 Hotel guardado exitosamente');
+      setHotelDialog(false);
+      setHotelForm({
+        name: '',
+        address: '',
+        phone: '',
+        totalRooms: ''
+      });
+
+      // Opcional: refrescar lista de hoteles
+      // await fetchHotels(); si tienes una función así
+    } catch (err: any) {
+      console.error(err);
+      alert('Error inesperado');
+    }
   };
+
 
   const handleHotelDelete = (id: string) => {
     const roomsInHotel = rooms.filter(r => r.hotelId === id);
@@ -179,7 +228,7 @@ export const SettingsManager: React.FC = () => {
       });
       return;
     }
-    
+
     setHotels(hotels.filter(h => h.id !== id));
     toast({
       title: "Hotel eliminado",
@@ -191,9 +240,9 @@ export const SettingsManager: React.FC = () => {
   const openRoomDialog = (room?: Room) => {
     if (room) {
       setEditingRoom(room);
-      setRoomForm({ 
-        number: room.number, 
-        hotelId: room.hotelId, 
+      setRoomForm({
+        number: room.number,
+        hotelId: room.hotelId,
         type: room.type || '',
         floor: room.floor || '',
         capacity: room.capacity?.toString() || '',
@@ -217,9 +266,9 @@ export const SettingsManager: React.FC = () => {
     }
 
     // Verificar duplicados
-    const isDuplicate = rooms.some(r => 
-      r.number === roomForm.number && 
-      r.hotelId === roomForm.hotelId && 
+    const isDuplicate = rooms.some(r =>
+      r.number === roomForm.number &&
+      r.hotelId === roomForm.hotelId &&
       r.id !== editingRoom?.id
     );
 
@@ -233,13 +282,13 @@ export const SettingsManager: React.FC = () => {
     }
 
     if (editingRoom) {
-      setRooms(rooms.map(r => 
-        r.id === editingRoom.id 
-          ? { 
-              ...r, 
-              ...roomForm,
-              capacity: roomForm.capacity ? parseInt(roomForm.capacity) : undefined
-            }
+      setRooms(rooms.map(r =>
+        r.id === editingRoom.id
+          ? {
+            ...r,
+            ...roomForm,
+            capacity: roomForm.capacity ? parseInt(roomForm.capacity) : undefined
+          }
           : r
       ));
       toast({
@@ -273,8 +322,8 @@ export const SettingsManager: React.FC = () => {
   const openPlatformDialog = (platform?: PlatformOption) => {
     if (platform) {
       setEditingPlatform(platform);
-      setPlatformForm({ 
-        name: platform.name, 
+      setPlatformForm({
+        name: platform.name,
         category: platform.category || '',
         monthlyPrice: platform.monthlyPrice?.toString() || '',
         isActive: platform.isActive
@@ -297,13 +346,13 @@ export const SettingsManager: React.FC = () => {
     }
 
     if (editingPlatform) {
-      setPlatformOptions(platformOptions.map(p => 
-        p.id === editingPlatform.id 
-          ? { 
-              ...p, 
-              ...platformForm,
-              monthlyPrice: platformForm.monthlyPrice ? parseFloat(platformForm.monthlyPrice) : undefined
-            }
+      setPlatformOptions(platformOptions.map(p =>
+        p.id === editingPlatform.id
+          ? {
+            ...p,
+            ...platformForm,
+            monthlyPrice: platformForm.monthlyPrice ? parseFloat(platformForm.monthlyPrice) : undefined
+          }
           : p
       ));
       toast({
@@ -440,7 +489,7 @@ export const SettingsManager: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button onClick={() => openHotelDialog()} className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
-                    Nuevo Hotel
+                    Nuevo Hotel xdd
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -456,7 +505,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="hotelName"
                         value={hotelForm.name}
-                        onChange={(e) => setHotelForm({...hotelForm, name: e.target.value})}
+                        onChange={(e) => setHotelForm({ ...hotelForm, name: e.target.value })}
                         className="col-span-3"
                         placeholder="Nombre del hotel"
                         required
@@ -467,7 +516,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="hotelAddress"
                         value={hotelForm.address}
-                        onChange={(e) => setHotelForm({...hotelForm, address: e.target.value})}
+                        onChange={(e) => setHotelForm({ ...hotelForm, address: e.target.value })}
                         className="col-span-3"
                         placeholder="Dirección del hotel"
                       />
@@ -477,7 +526,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="hotelPhone"
                         value={hotelForm.phone}
-                        onChange={(e) => setHotelForm({...hotelForm, phone: e.target.value})}
+                        onChange={(e) => setHotelForm({ ...hotelForm, phone: e.target.value })}
                         className="col-span-3"
                         placeholder="Teléfono del hotel"
                       />
@@ -488,7 +537,7 @@ export const SettingsManager: React.FC = () => {
                         id="hotelRooms"
                         type="number"
                         value={hotelForm.totalRooms}
-                        onChange={(e) => setHotelForm({...hotelForm, totalRooms: e.target.value})}
+                        onChange={(e) => setHotelForm({ ...hotelForm, totalRooms: e.target.value })}
                         className="col-span-3"
                         placeholder="Número total de habitaciones"
                         min="1"
@@ -576,7 +625,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="roomNumber"
                         value={roomForm.number}
-                        onChange={(e) => setRoomForm({...roomForm, number: e.target.value})}
+                        onChange={(e) => setRoomForm({ ...roomForm, number: e.target.value })}
                         className="col-span-3"
                         placeholder="ej. 101"
                         required
@@ -584,7 +633,7 @@ export const SettingsManager: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="roomHotel" className="text-right">Hotel *</Label>
-                      <Select value={roomForm.hotelId} onValueChange={(value) => setRoomForm({...roomForm, hotelId: value})}>
+                      <Select value={roomForm.hotelId} onValueChange={(value) => setRoomForm({ ...roomForm, hotelId: value })}>
                         <SelectTrigger className="col-span-3">
                           <SelectValue placeholder="Selecciona un hotel" />
                         </SelectTrigger>
@@ -600,7 +649,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="roomType"
                         value={roomForm.type}
-                        onChange={(e) => setRoomForm({...roomForm, type: e.target.value})}
+                        onChange={(e) => setRoomForm({ ...roomForm, type: e.target.value })}
                         className="col-span-3"
                         placeholder="ej. Estándar, Suite, Deluxe"
                       />
@@ -610,7 +659,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="roomFloor"
                         value={roomForm.floor}
-                        onChange={(e) => setRoomForm({...roomForm, floor: e.target.value})}
+                        onChange={(e) => setRoomForm({ ...roomForm, floor: e.target.value })}
                         className="col-span-3"
                         placeholder="ej. 1, 2, 3"
                       />
@@ -621,7 +670,7 @@ export const SettingsManager: React.FC = () => {
                         id="roomCapacity"
                         type="number"
                         value={roomForm.capacity}
-                        onChange={(e) => setRoomForm({...roomForm, capacity: e.target.value})}
+                        onChange={(e) => setRoomForm({ ...roomForm, capacity: e.target.value })}
                         className="col-span-3"
                         placeholder="Número de huéspedes"
                         min="1"
@@ -629,7 +678,7 @@ export const SettingsManager: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="roomStatus" className="text-right">Estado</Label>
-                      <Select value={roomForm.status} onValueChange={(value: Room['status']) => setRoomForm({...roomForm, status: value})}>
+                      <Select value={roomForm.status} onValueChange={(value: Room['status']) => setRoomForm({ ...roomForm, status: value })}>
                         <SelectTrigger className="col-span-3">
                           <SelectValue />
                         </SelectTrigger>
@@ -735,7 +784,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="platformName"
                         value={platformForm.name}
-                        onChange={(e) => setPlatformForm({...platformForm, name: e.target.value})}
+                        onChange={(e) => setPlatformForm({ ...platformForm, name: e.target.value })}
                         className="col-span-3"
                         placeholder="Nombre de la plataforma"
                         required
@@ -746,7 +795,7 @@ export const SettingsManager: React.FC = () => {
                       <Input
                         id="platformCategory"
                         value={platformForm.category}
-                        onChange={(e) => setPlatformForm({...platformForm, category: e.target.value})}
+                        onChange={(e) => setPlatformForm({ ...platformForm, category: e.target.value })}
                         className="col-span-3"
                         placeholder="ej. Streaming, Gaming, etc."
                       />
@@ -758,7 +807,7 @@ export const SettingsManager: React.FC = () => {
                         type="number"
                         step="0.01"
                         value={platformForm.monthlyPrice}
-                        onChange={(e) => setPlatformForm({...platformForm, monthlyPrice: e.target.value})}
+                        onChange={(e) => setPlatformForm({ ...platformForm, monthlyPrice: e.target.value })}
                         className="col-span-3"
                         placeholder="0.00"
                         min="0"
@@ -766,7 +815,7 @@ export const SettingsManager: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="platformActive" className="text-right">Estado</Label>
-                      <Select value={platformForm.isActive.toString()} onValueChange={(value) => setPlatformForm({...platformForm, isActive: value === 'true'})}>
+                      <Select value={platformForm.isActive.toString()} onValueChange={(value) => setPlatformForm({ ...platformForm, isActive: value === 'true' })}>
                         <SelectTrigger className="col-span-3">
                           <SelectValue />
                         </SelectTrigger>
@@ -809,8 +858,8 @@ export const SettingsManager: React.FC = () => {
                         {platform.monthlyPrice ? `$${platform.monthlyPrice.toFixed(2)}` : 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          className={platform.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} 
+                        <Badge
+                          className={platform.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                           variant="secondary"
                         >
                           {platform.isActive ? 'Activa' : 'Inactiva'}

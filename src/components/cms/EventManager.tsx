@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HotelSelect } from "@/components/HotelSelect";
 import {
   Table,
   TableBody,
@@ -24,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { 
+import {
   Calendar,
   Plus,
   Edit,
@@ -49,13 +50,14 @@ interface EventFormData {
   image_urls: string[];
 }
 
+
 export const EventManager: React.FC = () => {
   const { events, hotels, media, addEvent, updateEvent, deleteEvent } = useCMS();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
@@ -99,7 +101,7 @@ export const EventManager: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const eventData = {
       ...formData,
       current_attendees: 0,
@@ -232,18 +234,10 @@ export const EventManager: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="hotel_id">Hotel</Label>
-                  <Select value={formData.hotel_id} onValueChange={(value) => handleInputChange('hotel_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar hotel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hotels.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>
-                          {hotel.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <HotelSelect
+                    hotelId={formData.hotel_id}
+                    setHotelId={(id) => setFormData({ ...formData, hotel_id: id })}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="event_type">Tipo de Evento</Label>
