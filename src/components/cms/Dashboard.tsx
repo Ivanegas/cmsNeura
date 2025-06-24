@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Image, 
-  Hotel, 
-  BarChart3, 
+import {
+  FileText,
+  Image,
+  Hotel,
+  BarChart3,
   Plus,
   Edit,
   Eye,
@@ -15,6 +15,8 @@ import {
   Bed
 } from 'lucide-react';
 import { useCMS } from '@/contexts/CMSContext';
+import { supabase } from '@/lib/supabaseClient'; // ✅ IMPORTANTE
+
 
 interface DashboardProps {
   onNavigate?: (view: string) => void;
@@ -22,13 +24,13 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { pages, media, hotels, rooms, platforms, events } = useCMS();
-  
+
   const publishedPages = pages.filter(page => page.status === 'published').length;
   const draftPages = pages.filter(page => page.status === 'draft').length;
   const totalViews = pages.reduce((sum, page) => sum + page.views, 0);
   const activePlatforms = platforms.filter(platform => platform.status === 'active').length;
   const activeEvents = events.filter(event => event.status === 'active').length;
-  
+
   const stats = [
     {
       title: "Hoteles",
@@ -66,11 +68,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleNewPage = () => {
+  /* const handleNewPage = () => {
     if (onNavigate) {
       onNavigate('editor');
     }
+  }; */
+
+  const handleNewPage = async () => {
+    const slug = `pagina-${Date.now()}`;
+    try {
+      const newPage = {
+        title: 'Nueva Página',
+        slug,
+        status: 'draft',
+        author: 'Admin',
+        views: 0,
+        lastModified: new Date().toISOString().split('T')[0],
+        content: JSON.stringify({
+          elements: [],
+          layout: 'tv',
+          version: '1.0'
+        })
+      };
+
+      const { error, data } = await supabase
+        .from('pages')
+        .insert(newPage)
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('❌ Error al crear la nueva página:', error.message);
+        return;
+      }
+
+      if (onNavigate && data?.id) {
+        onNavigate(data.id); // Navega al editor con el ID de la nueva página
+      }
+
+    } catch (err) {
+      console.error('❌ Error inesperado al crear la nueva página:', err);
+    }
   };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -85,7 +85,6 @@ interface CMSContextType {
   updatePage: (id: string, updates: Partial<Page>) => Promise<void>;
   deletePage: (id: string) => Promise<void>;
   fetchPages: () => Promise<void>;
-
   rooms: Room[];
   platforms: Platform[];
   media: MediaItem[];
@@ -95,6 +94,7 @@ interface CMSContextType {
   addEvent: (event: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
+  getPageBySlug: (slug: string) => Page | undefined;
 }
 
 const CMSContext = createContext<CMSContextType | undefined>(undefined);
@@ -202,6 +202,10 @@ export const CMSProvider: React.FC<CMSProviderProps> = ({ children }) => {
     // puedes agregar fetchHotels, fetchMedia, etc. aquí también
   }, []);
 
+  const getPageBySlug = (slug: string): Page | undefined => {
+    return pages.find((page) => page.slug === slug);
+  };
+
   return (
     <CMSContext.Provider
       value={{
@@ -220,6 +224,7 @@ export const CMSProvider: React.FC<CMSProviderProps> = ({ children }) => {
         addEvent,
         updateEvent,
         deleteEvent,
+        getPageBySlug,
       }}
     >
       {children}
