@@ -153,7 +153,7 @@ export const EventManager: React.FC = () => {
 
   const getHotelName = (hotelId: string) => {
     const hotel = hotels.find(h => h.id === hotelId);
-    return hotel ? hotel.name : 'Hotel no encontrado';
+    return hotel ? hotel.nombre : 'Hotel no encontrado';
   };
 
   const getStatusColor = (status: string) => {

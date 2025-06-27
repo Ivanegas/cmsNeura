@@ -489,7 +489,7 @@ export const SettingsManager: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button onClick={() => openHotelDialog()} className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
-                    Nuevo Hotel xdd
+                    Nuevo Hotel
                   </Button>
                 </DialogTrigger>
                 <DialogContent>

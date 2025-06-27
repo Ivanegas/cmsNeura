@@ -30,8 +30,10 @@ interface Event {
 
 interface Hotel {
   id: string;
-  name: string;
+  nombre: string;
   address: string;
+  phone?: string;
+  totalRooms?: number;
   status: 'active' | 'inactive';
   createdAt: string;
 }
@@ -77,6 +79,18 @@ interface Platform {
   createdAt: string;
 }
 
+interface Platform {
+  id: string;
+  name: string;
+  hotel: string;
+  rooem: string;
+  username: string;
+  password: string;
+  cutoffDate: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
 // ==== Context Type ====
 
 interface CMSContextType {
@@ -95,6 +109,11 @@ interface CMSContextType {
   updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   getPageBySlug: (slug: string) => Page | undefined;
+  fetchHotels: () => Promise<void>;
+  fetchPlatforms: () => Promise<void>;
+  addPlatform: (platform: Omit<Platform, 'id' | 'createdAt'>) => Promise<void>;
+  updatePlatform: (id: string, updates: Partial<Platform>) => Promise<void>;
+  deletePlatform: (id: string) => Promise<void>;
 }
 
 const CMSContext = createContext<CMSContextType | undefined>(undefined);
@@ -206,6 +225,49 @@ export const CMSProvider: React.FC<CMSProviderProps> = ({ children }) => {
     return pages.find((page) => page.slug === slug);
   };
 
+  const fetchHotels = async () => {
+    const { data, error } = await supabase.from('hotels').select('*');
+    if (error) {
+      console.error('❌ Error al obtener hoteles:', error.message);
+    } else {
+      setHotels(data as Hotel[]);
+    }
+  }
+
+  useEffect(() => {
+    fetchHotels();
+  }, []);
+
+  const fetchPlatforms = async () => {
+    const { data, error } = await supabase.from('platforms').select('*');
+    if (error) {
+      console.error('❌ Error al obtener plataformas:', error.message);
+    } else {
+      setPlatforms(data as Platform[]);
+    }
+  }
+
+  const addPlatform = async (platform: Omit<Platform, 'id' | 'createdAt'>) => {
+    const { error } = await supabase.from('platforms').insert({
+      ...platform,
+      createdAt: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    await fetchPlatforms();
+  };
+
+  const updatePlatform = async (id: string, updates: Partial<Platform>) => {
+    const { error } = await supabase.from('platforms').update(updates).eq('id', id);
+    if (error) throw new Error(error.message);
+    await fetchPlatforms();
+  };
+
+  const deletePlatform = async (id: string) => {
+    const { error } = await supabase.from('platforms').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    await fetchPlatforms();
+  };
+
   return (
     <CMSContext.Provider
       value={{
@@ -214,17 +276,22 @@ export const CMSProvider: React.FC<CMSProviderProps> = ({ children }) => {
         updatePage,
         deletePage,
         fetchPages,
-
         rooms,
         platforms,
+        fetchPlatforms,
+        addPlatform,
+        updatePlatform,
+        deletePlatform,
         media,
         hotels,
+        fetchHotels,
         events,
         fetchEvents,
         addEvent,
         updateEvent,
         deleteEvent,
         getPageBySlug,
+
       }}
     >
       {children}

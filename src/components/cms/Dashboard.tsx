@@ -56,11 +56,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     {
       title: "Plataformas",
       value: platforms.length.toString(),
-      description: `${activePlatforms} activas`,
+      description: `${activePlatforms} activas`, // ✅ ESTO es lo que necesitas
       icon: Tv,
       color: "bg-orange-500"
     }
   ];
+
 
   const handleNavigation = (view: string) => {
     if (onNavigate) {
