@@ -19,13 +19,15 @@ import { ImageLibrary } from './ImageLibrary';
 import { useCMS } from '@/contexts/CMSContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
+import { EventPreview } from './EventPreview';
+import { EventSelectorDialog } from './EventSelectorDialog'; // importa tu nuevo modal
 
 interface VisualEditorProps {
   onNavigate?: (view: string) => void;
 }
 
 export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
-  const { pages, updatePage } = useCMS();
+  const { pages, updatePage, events } = useCMS();
   const { toast } = useToast();
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -36,6 +38,11 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
   const [elements, setElements] = useState<any[]>([]);
   const [dragCounter, setDragCounter] = useState(0);
   const canvasRef = useRef<HTMLDivElement>(null);
+  /* const [eventDialogOpen, setEventDialogOpen] = useState(false); */
+  const [pendingEventPosition, setPendingEventPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showEventSelector, setShowEventSelector] = useState(false);
+  const [eventTargetElementId, setEventTargetElementId] = useState<string | null>(null);
+
 
   const selectedPage = pages.find(p => p.id === selectedPageId);
 
@@ -141,6 +148,14 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
       const x = Math.max(20, Math.min(e.clientX - rect.left - 100, rect.width - 220));
       const y = Math.max(20, Math.min(e.clientY - rect.top - 25, rect.height - 100));
 
+      if (elementType === 'event') {
+        setPendingEventPosition({ x, y });
+        setShowEventSelector(true); // antes era setEventDialogOpen(true)
+        return handleDragEnd();
+      }
+
+
+
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: elementType,
@@ -148,11 +163,16 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
         y: y,
         width: elementType === 'text' ? 300 :
           elementType === 'heading' ? 400 :
-            elementType === 'button' ? 150 : 250,
+            elementType === 'button' ? 150 :
+              elementType === 'image' ? 250 :
+                elementType === 'event' ? 300 :
+                  250,
         height: elementType === 'text' ? 40 :
           elementType === 'heading' ? 60 :
             elementType === 'button' ? 40 :
-              elementType === 'image' ? 200 : 100,
+              elementType === 'image' ? 200 :
+                elementType === 'event' ? 100 :
+                  100,
         content: elementType === 'text' ? 'Haz doble clic para editar' :
           elementType === 'heading' ? 'Título Principal' :
             elementType === 'button' ? 'Mi Botón' :
@@ -160,15 +180,22 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
                 elementType === 'video' ? 'Video aquí' :
                   elementType === 'link' ? 'Enlace' :
                     elementType === 'list' ? 'Elemento de lista' :
-                      elementType === 'container' ? 'Contenedor' : 'Nuevo elemento',
+                      elementType === 'container' ? 'Contenedor' :
+                        elementType === 'event' ? 'event-id-placeholder' :
+                          'Nuevo elemento',
         styles: {
           fontSize: elementType === 'text' ? '16px' :
             elementType === 'heading' ? '32px' : '14px',
           fontWeight: elementType === 'heading' ? 'bold' : 'normal',
           color: '#ffffff',
-          backgroundColor: elementType === 'button' ? '#3b82f6' : 'transparent'
+          backgroundColor: elementType === 'button'
+            ? '#3b82f6'
+            : elementType === 'event'
+              ? '#4c1d95' // púrpura fondo para evento
+              : 'transparent'
         }
       };
+
 
       console.log('✨ Añadiendo nuevo elemento:', newElement);
       setElements(prev => {
@@ -447,6 +474,10 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
                         onSelect={setSelectedElement}
                         onUpdate={handleElementUpdate}
                         onDelete={handleElementDelete}
+                        onEditEvent={(elementId) => {
+                          setEventTargetElementId(elementId);
+                          setShowEventSelector(true);
+                        }}
                       />
                     ))}
 
@@ -575,6 +606,64 @@ export const VisualEditor: React.FC<VisualEditorProps> = ({ onNavigate }) => {
           }}
         />
       )}
+      <EventSelectorDialog
+        open={showEventSelector} // ⚠️ antes era eventDialogOpen
+        onClose={() => {
+          setShowEventSelector(false);
+          setEventTargetElementId(null);
+        }}
+        onSelect={(selectedEvent) => {
+          const selected = events.find(e => e.id === selectedEvent.id);
+          if (!selected) return;
+
+          // 1️⃣ Si es edición de un evento existente
+          if (eventTargetElementId) {
+            handleElementUpdate(eventTargetElementId, {
+              content: JSON.stringify({
+                id: selected.id,
+                title: selected.title,
+                description: selected.description,
+              }),
+            });
+            setEventTargetElementId(null);
+          }
+          // 2️⃣ Si es un nuevo elemento
+          else if (pendingEventPosition) {
+            const newElement = {
+              id: `element-${Date.now()}`,
+              type: 'event',
+              x: pendingEventPosition.x,
+              y: pendingEventPosition.y,
+              width: 300,
+              height: 100,
+              content: JSON.stringify({
+                id: selected.id,
+                title: selected.title,
+                description: selected.description,
+              }),
+              styles: {
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: '#ffffff',
+                backgroundColor: '#4c1d95',
+              },
+            };
+            setElements(prev => [...prev, newElement]);
+            toast({
+              title: 'Evento añadido',
+              description: `Se ha añadido el evento "${selected.title}"`,
+            });
+          }
+
+          // Reset
+          setPendingEventPosition(null);
+          setShowEventSelector(false);
+        }}
+        events={events}
+      />
+
     </div>
+
   );
+
 };

@@ -2,17 +2,18 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Type, 
-  Image, 
-  Square, 
+import {
+  Type,
+  Image,
+  Square,
   Circle,
   Video,
   Link,
   List,
   AlignLeft,
   Layers,
-  Palette
+  Palette,
+  Calendar
 } from 'lucide-react';
 
 interface DragDropToolbarProps {
@@ -20,22 +21,22 @@ interface DragDropToolbarProps {
   onShowImageLibrary: () => void;
 }
 
-export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({ 
-  onDragStart, 
-  onShowImageLibrary 
+export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({
+  onDragStart,
+  onShowImageLibrary
 }) => {
   const handleDragStart = (e: React.DragEvent, elementType: string) => {
     console.log('🚀 Iniciando arrastre:', elementType);
-    
+
     // Configurar múltiples formatos de datos para máxima compatibilidad
     e.dataTransfer.setData('application/json', JSON.stringify({ type: elementType }));
     e.dataTransfer.setData('text/plain', elementType);
     e.dataTransfer.setData('text/html', elementType);
-    
+
     // Configurar efectos de arrastre
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.dropEffect = 'copy';
-    
+
     // Llamar al callback
     onDragStart(elementType);
   };
@@ -106,6 +107,12 @@ export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({
       label: 'Contenedor',
       description: 'Grupo de elementos',
       color: 'text-indigo-600'
+    }, {
+      type: 'event',
+      icon: Calendar,
+      label: 'Evento',
+      description: 'Agregar un evento',
+      color: 'text-violet-600'
     }
   ];
 
@@ -121,7 +128,7 @@ export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({
         <CardContent className="space-y-2">
           {elements.map((element) => {
             const Icon = element.icon;
-            
+
             return (
               <div
                 key={element.type}
@@ -131,7 +138,7 @@ export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({
                 onDragOver={handleDragOver}
                 className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-200 rounded-lg cursor-grab hover:bg-blue-50 hover:border-blue-300 transition-all group active:cursor-grabbing select-none bg-white shadow-sm"
                 title={`Arrastra para añadir: ${element.description}`}
-                style={{ 
+                style={{
                   touchAction: 'none',
                   userSelect: 'none'
                 }}
@@ -155,8 +162,8 @@ export const DragDropToolbar: React.FC<DragDropToolbarProps> = ({
           <CardTitle className="text-sm">Acciones Rápidas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start"
             onClick={onShowImageLibrary}
           >
