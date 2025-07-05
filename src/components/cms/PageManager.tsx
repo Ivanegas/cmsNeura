@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { hotelWelcomeTemplate } from '@/templates/predefinedTemplates';
 import {
   Plus,
   Search,
@@ -78,11 +79,8 @@ export const PageManager: React.FC<PageManagerProps> = ({ onNavigate }) => {
       author: 'Admin',
       views: 0,
       lastModified: new Date().toISOString().split('T')[0],
-      content: JSON.stringify({
-        elements: [],
-        layout: 'tv',
-        version: '1.0'
-      })
+      content: JSON.stringify(hotelWelcomeTemplate)
+
     };
 
     const { data, error } = await supabase
@@ -112,7 +110,7 @@ export const PageManager: React.FC<PageManagerProps> = ({ onNavigate }) => {
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crear Nueva Página</DialogTitle>
+            <DialogTitle>Crear Nueva Página </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreatePage} className="space-y-4">
             <div>
