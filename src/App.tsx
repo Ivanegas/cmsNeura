@@ -20,6 +20,7 @@ import Register from "./pages/Register";
 import EditorPage from "./pages/EditorPage";
 import ViewerPage from "./pages/ViewerPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { AndroidTVSimulator } from "./components/AndroidTVSimulator";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => {
               <Route path="/:pageSlug" element={<CMSPageRenderer />} />
               <Route path="/:slug" element={<CMSPageRenderer />} />
               <Route path="*" element={<NotFound />} />
+              <Route path="/tvSimulator" element={<AndroidTVSimulator />} />
             </Routes>
           </BrowserRouter>
         </CMSProvider>
